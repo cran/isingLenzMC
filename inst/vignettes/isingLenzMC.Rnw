@@ -1,9 +1,11 @@
 \documentclass[a4paper]{article}
 
-\title{Ising Model: Single spin flip dynamics}
+
+\title{isingLenzMC v0.2: Glauber and Metropolis single spin flip dynamics for the Ising Model}
 \author{Mehmet S\"uzen, Ph.D. \footnote{mehmet.suzen@physics.org}}
 
 \begin{document}
+%\VignetteIndexEntry{Ising Model: Single spin flip dynamics}
 \maketitle
 
 The Ising-Lenz Model \footnote{E. Ising 1924} appear as one of the land mark systems in statistical physics,
@@ -12,8 +14,8 @@ in explaining critical phenomenon, Ising Model is routinely used in research and
 statistical mechanics and in standard Monte Carlo methods. There exist analytical solutions for 1D and 2D
 Ising Model. Still, numerical solutions with MC could provide insights.
 
-{\bf isingLenzMC} package provides utilities to simulate one dimensional Ising Model with Metropolis Monte 
-Carlo with single flip dynamics in periodic boundary conditions \footnote{Higher dimensional models may be 
+{\bf isingLenzMC} package provides utilities to simulate one dimensional Ising Model with Metropolis and Glauber 
+Monte Carlo with single flip dynamics in periodic boundary conditions \footnote{Higher dimensional models may be 
 introduced in future releases.}. Computationally intensive parts are written in {\it low-level language (C)} 
 for efficiency reasons.
 
@@ -27,7 +29,7 @@ neuron.
 The total energy, so called Hamiltonian, of the system can be expressed as follows, for short-range parts with 
 interaction strength $J$:
 
-$$ H(\{s_{i}\}_{i=1}^{N}, J, H) = J \big( (\sum_{i=1}^{N-1} s_{i} s_{i+1}) + (s_{1} s_{N}) \big) + H \sum_{1}^{N} s_{i} $$ 
+$$ \mathcal{H}(\{s_{i}\}_{i=1}^{N}, J, H) = J \big( (\sum_{i=1}^{N-1} s_{i} s_{i+1}) + (s_{1} s_{N}) \big) + H \sum_{1}^{N} s_{i} $$ 
 
 This expression contains two interactions, due to nearest-neighbors (NN) and due to an external field. Coefficients 
 $J$ and $H$ corresponds to these interactions respectively. Note that, additional term in NN interactions $s_{1} s_{N}$
@@ -52,12 +54,14 @@ this document, however default RNG in R, Marsenne-Twister is an appropriate choi
 
 \subsection{Transition Probability}
 
-The transition probability associated to single spin flip is computed via computing the Boltzmann factor of total energy difference
-as follows:
+The transition probability associated to single spin flip, for Glauber and Metropolis dynamics,
+can be computed as follows
 
-$$p(\{s_{i}\}_{i=1}^{N}) = \exp(-k  \Delta H) \big( 1 + \exp(-k  \Delta H) \big)$$
+$$p_{Glauber}(\{s_{i}\}_{i=1}^{N})    = \exp(-k  \Delta \mathcal{H})/ \big( 1 + \exp(k  -\Delta \mathcal{H}) \big) $$
+$$                                    = 1/\big( 1 + \exp(k  \Delta \mathcal{H}) \big)$$
+$$p_{Metropolis}(\{s_{i}\}_{i=1}^{N}) =  min\big(1, \exp(-k  \Delta \mathcal{H}) \big)$$
 
-where $k = \frac{1}{k_{B}T}$ is the Boltzmann factor and $\Delta H$ is the total energy difference.
+where $k = \frac{1}{k_{B}T}$ is the Boltzmann factor and $\Delta \mathcal{H}$ is the total energy difference.
 
 \subsection{Metropolis Monte Carlo}
 
@@ -85,7 +89,7 @@ myNextConfig
 # nearest neighbour energy for initial config
 lattice1DenergyNN(myInitialConfig) 
 # transition probability  at J=H=1/kBT=1.0
-transitionProbability1D(1.0, myInitialConfig, myNextConfig, 1.0, 1.0)
+transitionProbability1D(1.0, myInitialConfig, myNextConfig, 1.0, 1.0, 1) # Metropolis
 @
 
 It is possible to do the above steps in one go by applying MC move
@@ -96,10 +100,10 @@ N <- 7
 myInitialConfig <- genConfig1D(N)
 myInitialConfig
 # 1 step Monte Carlo move
-isStep1D(1.0, myInitialConfig, 1.0, 1.0)
+isStep1D(1.0, myInitialConfig, 1.0, 1.0, 1) # Metropolis
 @
 
-\section{Doing Some Physics}
+\section{Simulations}
 \subsection{Free Energy}
 The partition function $Z_{N}$ can be computed by using the eigenvalues $\lambda_{1}$ and $\lambda_{2}$ of the transfer matrix. 
 $$Z_{N}(J, H) = \lambda_{1}^{N} +  \lambda_{2}^{N} $$
@@ -126,15 +130,14 @@ set.seed(123456)
 ensembleM <- 0.9934346
 N         <- 200
 x         <- genConfig1D(N)
-mcData    <- isPerform1D(1.0, x, 1.0, 1.0, 10000, ensembleM)
+mcData    <- isPerform1D(1.0, x, 1.0, 1.0, 10000, ensembleM, 1)  # Metropolis
 @
 a member of {\it mcData} named list {\it omegaM} reports so called a fluctuation metric over accepted steps, and it is defined as 
 follows
 $$ \Omega_{M}(k) = \Big( (\sum_{i=1}^{k} M_{ave}^{i}) - M_{ensemble} \Big)^{2} $$
 where $M_{ave}^{i}$ is the average magnetisation per site at a given accepted step $i$. It is left as an exercise to see how this 
-fluctuation metric changes with the system size $N$. The larger the lattice, longer simulation needed to reach to ensemble average.
+fluctuation mDetric changes with the system size $N$. The larger the lattice, longer simulation needed to reach to ensemble average.
 
-
-
-
+\section{Acknowledgements}
+Author wishes to thank Dr. Ole Peters, Dr. Richard M. Neumann and Dr. Cornelius Weber for valuable discussions and correspondence.
 \end{document}

@@ -76,14 +76,15 @@ totalEnergy1D <- function(x, J, H) {
 #   xflip: 1D Spin sites on the lattice: after a flip
 #   J    : interaction strength
 #   H    : external field
-transitionProbability1D <- function(ikBT, x, xflip, J, H) {
+#   probSel : which transition probability to use 1 Metropolis 2 Glauber
+transitionProbability1D <- function(ikBT, x, xflip, J, H, probSel) {
    prob <- 0.0;
   if(!is.numeric(x)) 
     stop("argument x must be numeric");
   if(!is.numeric(xflip)) 
     stop("argument xflip must be numeric");
   out <- .C("transitionProbability1D", ikBT=as.double(ikBT), n=as.integer(length(x)), vec=as.double(x), vecFlip=as.double(xflip), 
-                                       J=as.double(J), H=as.double(H), prob=as.double(prob));
+                                       J=as.double(J), H=as.double(H), prob=as.double(prob), probSel=as.integer(probSel));
   out$prob
 }
 
@@ -96,13 +97,15 @@ transitionProbability1D <- function(ikBT, x, xflip, J, H) {
 #   J    : interaction strength
 #   H    : external field
 #   rout : Pair list, flip states (vec) and if step is accepted (accept)
-isStep1D <- function(ikBT, x, J, H) {
+#   probSel : which transition probability to use 1 Metropolis 2 Glauber
+isStep1D <- function(ikBT, x, J, H, probSel) {
    prob <- 0.0;
    accept <- 0.0;
   if(!is.numeric(x)) 
     stop("argument x must be numeric");
     out <- .C("isStep1D", ikBT=as.double(ikBT), n=as.integer(length(x)), vec=as.double(x),  
-                          J=as.double(J), H=as.double(H), prob=as.double(prob), accept=as.integer(accept));
+                          J=as.double(J), H=as.double(H), prob=as.double(prob), accept=as.integer(accept), 
+                          probSel=as.integer(probSel));
   rout <- list(vec=out$vec, accept=out$accept)
   rout
 }
@@ -121,18 +124,20 @@ isStep1D <- function(ikBT, x, J, H) {
 #   omegaM    : Fluctuating metric vector for Magnetisation (length of naccept)
 #   naccept   : number of MC steps accepted
 #   nreject   : number of MC steps rejected
+#   probSel : which transition probability to use 1 Metropolis 2 Glauber
 #
-isPerform1D <- function(ikBT, x, J, H, nstep, ensembleM) {
+isPerform1D <- function(ikBT, x, J, H, nstep, ensembleM, probSel) {
   if(!is.numeric(x)) 
     stop("argument x must be numeric");
     omegaM  <- rep(0.0, nstep); # Let R allocate memory; assume all steps will be accepted
                                 # index 1 to naccept will be reported in the vector
+    times   <- rep(1.0, nstep); # Let R allocate memory: this is the so called time to accepted flip!
     naccept <- 0;
     nreject <- 0;
     out     <- .C("isPerform1D", ikBT=as.double(ikBT), n=as.integer(length(x)), vec=as.double(x),  
                              J=as.double(J), H=as.double(H), ensembleM=as.double(ensembleM), 
                              omegaM=as.double(omegaM), nstep=as.integer(nstep), naccept=as.integer(naccept),
-                             nreject=as.integer(nreject));
-  rout <- list(omegaM=out$omegaM, nreject=out$nreject, naccept=out$naccept);
+                             nreject=as.integer(nreject), times=as.integer(times), probSel=as.integer(probSel));
+  rout <- list(omegaM=out$omegaM, nreject=out$nreject, naccept=out$naccept, times=out$times);
   rout
 }

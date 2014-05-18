@@ -127,13 +127,15 @@ void totalEnergy1D(int *ll, double *vec, double *J, double *H, double *totalEner
    vecOrg  : Original spin states
    vecFlip : one flip spin states
    prob    : transition probability
+   probSel : which transition probability to use 1 Metropolis 2 Glauber
 */       
-void transitionProbability1D(double *ikBT, int *ll, double *vecOrg, double *vecFlip, double *J, double *H, double *prob) {
+void transitionProbability1D(double *ikBT, int *ll, double *vecOrg, double *vecFlip, double *J, double *H, double *prob, int *probSel) {
   double energyOrg[1], energyFlip[1], DeltaE;
   totalEnergy1D(ll, vecOrg, J, H, energyOrg);
   totalEnergy1D(ll, vecFlip, J, H, energyFlip);
   DeltaE  = energyOrg[0] - energyFlip[0];
-  prob[0] = exp(-ikBT[0]*DeltaE)/(1 + exp(-ikBT[0]*DeltaE));
+  if(probSel[0] == 1) prob[0]   = fmin(1, exp(-ikBT[0]*DeltaE));  /* Metropolis */
+  if(probSel[0] == 2) prob[0]   = 1.0/(1.0+exp(ikBT[0]*DeltaE)); /* Glauber    */
 }
 
 /*
@@ -145,8 +147,9 @@ void transitionProbability1D(double *ikBT, int *ll, double *vecOrg, double *vecF
    vec     : Original spin states
    prob    : transition probability
    accept  : if step accepted it will be 1 (so pass/make it zero before running this function)
+   probSel : which transition probability to use 1 Metropolis 2 Glauber
 */
-void isStep1D(double *ikBT, int *ll, double *vec, double *J, double *H, double *prob, int *accept) {
+void isStep1D(double *ikBT, int *ll, double *vec, double *J, double *H, double *prob, int *accept, int *probSel) {
   double energyOrg[1], energyFlip[1], DeltaE, flipId, rnd;
   int rn,i;
   totalEnergy1D(ll, vec, J, H, energyOrg);
@@ -158,7 +161,8 @@ void isStep1D(double *ikBT, int *ll, double *vec, double *J, double *H, double *
   totalEnergy1D(ll, vec, J, H, energyFlip);
   vec[rn]   = -1.0*vec[rn]; // flip back
   DeltaE    = energyOrg[0] - energyFlip[0];
-  prob[0]   = exp(-ikBT[0]*DeltaE)/(1+exp(-ikBT[0]*DeltaE));
+  if(probSel[0] == 1) prob[0]   = fmin(1, exp(-ikBT[0]*DeltaE));          /* Metropolis */
+  if(probSel[0] == 2) prob[0]   = 1.0/(1.0+exp(ikBT[0]*DeltaE)); /* Glauber */
   GetRNGstate();
   rnd       = unif_rand();
   PutRNGstate();
@@ -185,10 +189,12 @@ void isStep1D(double *ikBT, int *ll, double *vec, double *J, double *H, double *
 #   nstep     : number of MC steps requested
 #   naccept   : number of MC steps accepted
 #   nreject   : number of MC steps rejected
+#   times     : this is 
+#   probSel : which transition probability to use 1 Metropolis 2 Glauber
 #
 */
 void isPerform1D(double *ikBT, int *ll, double *vec, double *J, double *H, double *ensembleM, 
-                 double *omegaM, int *nstep, int *naccept, int *nreject) {
+                 double *omegaM, int *nstep, int *naccept, int *nreject, int *times, int *probSel) {
   int i, k, accept[1];
   double prob[1];
   double timeM[1], diff, magtime;  /* time average magnetization */
@@ -198,15 +204,16 @@ void isPerform1D(double *ikBT, int *ll, double *vec, double *J, double *H, doubl
    k = 0;
   for(i=0 ;i < nstep[0]; i++) {
     accept[0] = 0;
-    isStep1D(ikBT, ll, vec, J, H, prob, accept);
+    isStep1D(ikBT, ll, vec, J, H, prob, accept, probSel);
     if(accept[0] < 1) nreject[0]++;
     if(accept[0] > 0) { 
-      naccept[0]++;
+      times[naccept[0]] = i;
       sumVec(ll, vec, timeM);
       magtime += timeM[0]/ll[0];
       diff    = (magtime/(k+1) - ensembleM[0]); 
       omegaM[k] = diff*diff;
       k++;
+      naccept[0]++;
     }
    }
 } 
