@@ -1,10 +1,11 @@
 \documentclass[a4paper]{article}
 
 
-\title{isingLenzMC v0.2: Glauber and Metropolis single spin flip dynamics for the Ising Model}
+\title{isingLenzMC v0.2: Glauber and Metropolis single spin flip dynamics for the Ising Model \footnote{ This package supports following work, {\it Effective ergodicity in single-spin-flip dynamics}, Phys. Rev. E 90, 032141 (2014) DOI: 10.1103/PhysRevE.90.03214, Mehmet Suezen} }
 \author{Mehmet S\"uzen, Ph.D. \footnote{mehmet.suzen@physics.org}}
 
 \begin{document}
+\SweaveOpts{concordance=TRUE}
 %\VignetteIndexEntry{Ising Model: Single spin flip dynamics}
 \maketitle
 
